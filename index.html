@@ -11,20 +11,34 @@
       margin: 0;
       padding: 0;
     }
+    #contenedor {
+      position: relative;
+      display: inline-block;
+    }
     video, canvas {
       width: 640px;
       height: 480px;
-      margin-top: 10px;
       border: 2px solid #444;
-      display: block;
     }
     #overlay {
       position: absolute;
-      top: 10px;
-      left: 50%;
-      transform: translateX(-50%);
+      top: 0;
+      left: 0;
       width: 640px;
       height: 480px;
+      pointer-events: none;
+    }
+    #textoOverlay {
+      position: absolute;
+      top: 220px;
+      left: 0;
+      width: 640px;
+      text-align: center;
+      font-size: 1.2em;
+      font-weight: bold;
+      color: white;
+      background: rgba(0,0,0,0.4);
+      padding: 4px 0;
       pointer-events: none;
     }
     #planta {
@@ -39,24 +53,31 @@
       stroke: #00c853;
       stroke-width: 3;
     }
-    #mensaje-overlay {
-      position: absolute;
-      top: 500px;
-      left: 50%;
-      transform: translateX(-50%);
-      font-size: 1em;
-      color: #444;
-      font-weight: bold;
-    }
   </style>
 </head>
 <body>
   <h2>Escáner de Plantas Medicinales</h2>
-  <video id="video" autoplay muted playsinline></video>
-  <canvas id="canvas" style="display:none;"></canvas>
-  <div id="overlay"></div>
-  <div id="mensaje-overlay">Alinea el código aquí</div>
 
+  <div id="contenedor">
+    <video id="video" autoplay muted playsinline></video>
+    <canvas id="canvas" style="display:none;"></canvas>
+    <div id="overlay">
+      <svg width="640" height="480">
+        <rect x="60" y="60" width="520" height="360" fill="none" stroke="#00c853" stroke-width="2"/>
+        <line x1="60" y1="60" x2="80" y2="60" class="corner"/>
+        <line x1="60" y1="60" x2="60" y2="80" class="corner"/>
+        <line x1="580" y1="60" x2="560" y2="60" class="corner"/>
+        <line x1="580" y1="60" x2="580" y2="80" class="corner"/>
+        <line x1="60" y1="420" x2="80" y2="420" class="corner"/>
+        <line x1="60" y1="420" x2="60" y2="400" class="corner"/>
+        <line x1="580" y1="420" x2="560" y2="420" class="corner"/>
+        <line x1="580" y1="420" x2="580" y2="400" class="corner"/>
+      </svg>
+      <div id="textoOverlay">Alinea el código aquí</div>
+    </div>
+  </div>
+
+  <br>
   <input type="file" id="imageInput" accept="image/*">
   <button onclick="escanear()">Escanear Imagen Cargada</button>
   <button id="guardarPDF" onclick="generarPDF()" style="display:none;">Guardar Ficha en PDF</button>
@@ -94,7 +115,6 @@
     const video = document.getElementById("video");
     const canvas = document.getElementById("canvas");
     const ctx = canvas.getContext("2d");
-    const overlay = document.getElementById("overlay");
     const resultado = document.getElementById("planta");
     const guardarPDF = document.getElementById("guardarPDF");
 
@@ -119,22 +139,6 @@
       if (g > 150 && r < 200 && b < 100) return "verde";
       if (Math.abs(r - g) < 25 && Math.abs(g - b) < 25 && r < 200) return "gris";
       return "otro";
-    }
-
-    function dibujarOverlay() {
-      const svg = `
-      <svg width="640" height="480" xmlns="http://www.w3.org/2000/svg">
-        <rect x="60" y="60" width="520" height="360" fill="none" stroke="#00c853" stroke-width="2"/>
-        <line x1="60" y1="60" x2="80" y2="60" class="corner"/>
-        <line x1="60" y1="60" x2="60" y2="80" class="corner"/>
-        <line x1="580" y1="60" x2="560" y2="60" class="corner"/>
-        <line x1="580" y1="60" x2="580" y2="80" class="corner"/>
-        <line x1="60" y1="420" x2="80" y2="420" class="corner"/>
-        <line x1="60" y1="420" x2="60" y2="400" class="corner"/>
-        <line x1="580" y1="420" x2="560" y2="420" class="corner"/>
-        <line x1="580" y1="420" x2="580" y2="400" class="corner"/>
-      </svg>`;
-      overlay.innerHTML = svg;
     }
 
     function obtenerCodigoDesdeRegion(x, y, w, h) {
@@ -193,7 +197,7 @@
         <h1>Ficha de Planta Reconocida</h1>
         <p><strong>Nombre:</strong> ${ultimaPlantaReconocida}</p>
         <p><strong>Fecha:</strong> ${fecha}</p>
-        <p><strong>Resumen:</strong> Uso tradicional, interacciones y toxicidad dependerán de la base de datos médica asociada.</p>
+        <p><strong>Resumen:</strong> Información detallada sobre usos, toxicidad e interacciones dependerá del sistema completo.</p>
       `);
       win.print();
     }
@@ -211,8 +215,8 @@
     });
 
     video.addEventListener("loadeddata", () => {
-      dibujarOverlay();
       setInterval(() => {
+        if (!streamActivo) return;
         canvas.width = video.videoWidth;
         canvas.height = video.videoHeight;
         ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
