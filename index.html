@@ -69,15 +69,29 @@
 
 <script>
 const baseDatos = {
+  "Anís (Pimpinella anisum L.)": [
+    "blanco","gris","gris","gris","gris","gris","gris","blanco",
+    "gris","otro","otro","amarillo","negro","blanco","verde","gris",
+    "gris","otro","otro","gris","negro","blanco","verde","gris",
+    "negro","gris","gris","gris","gris","gris","gris","negro"
+  ],
   "Coca (Erythroxylum coca Lam.)": [
-    "gris", "amarillo", "rojo", "amarillo",
-    "blanco", "negro", "amarillo", "amarillo",
-    "gris", "gris", "verde", "blanco",
-    "negro", "blanco", "rojo", "gris",
-    "amarillo", "gris", "verde", "verde",
-    "negro", "blanco", "verde", "gris",
-    "rojo", "amarillo", "blanco", "gris",
-    "amarillo", "amarillo", "verde", "blanco"
+    "negro","gris","gris","gris","gris","gris","gris","negro",
+    "gris","otro","rojo","amarillo","negro","blanco","otro","gris",
+    "gris","otro","otro","gris","negro","blanco","verde","gris",
+    "negro","gris","gris","gris","gris","gris","gris","negro"
+  ],
+  "Diente de león (Taraxacum officinale F.H.Wigg.)": [
+    "negro","gris","gris","gris","gris","gris","gris","negro",
+    "gris","otro","gris","gris","negro","blanco","otro","gris",
+    "gris","otro","verde","gris","negro","blanco","verde","gris",
+    "negro","gris","gris","gris","gris","gris","gris","negro"
+  ],
+  "Wira Wira (Achyrocline venosa Rusby)": [
+    "negro","gris","gris","gris","gris","gris","gris","negro",
+    "gris","otro","otro","gris","negro","blanco","amarillo","gris",
+    "gris","otro","otro","gris","negro","blanco","amarillo","gris",
+    "negro","gris","gris","gris","gris","gris","gris","negro"
   ]
 };
 
@@ -96,29 +110,23 @@ function clasificarColor(r, g, b) {
   if (r > 200 && g > 200 && b < 100) return "amarillo";
   if (r > 200 && g < 80 && b < 80) return "rojo";
   if (g > 150 && r < 200 && b < 100) return "verde";
-  if (Math.abs(r - g) < 20 && Math.abs(g - b) < 20 && r < 200) return "gris";
+  if (Math.abs(r - g) < 25 && Math.abs(g - b) < 25 && r < 200) return "gris";
   return "otro";
 }
 
-function obtenerCodigo(x, y, ancho, alto) {
+function obtenerCodigoDesdeRegion(x, y, w, h) {
   const codigos = [];
   const filas = 4;
   const columnas = 8;
-  const anchoBloque = ancho / columnas;
-  const altoBloque = alto / filas;
+  const anchoBloque = w / columnas;
+  const altoBloque = h / filas;
   for (let f = 0; f < filas; f++) {
     for (let c = 0; c < columnas; c++) {
-      const px = x + c * anchoBloque;
-      const py = y + f * altoBloque;
-      const cell = ctx.getImageData(px, py, anchoBloque, altoBloque);
-      let r = 0, g = 0, b = 0;
-      for (let i = 0; i < cell.data.length; i += 4) {
-        r += cell.data[i];
-        g += cell.data[i + 1];
-        b += cell.data[i + 2];
-      }
-      const total = cell.data.length / 4;
-      codigos.push(clasificarColor(r / total, g / total, b / total));
+      const px = x + c * anchoBloque + anchoBloque / 2;
+      const py = y + f * altoBloque + altoBloque / 2;
+      const cell = ctx.getImageData(px, py, 1, 1);
+      const r = cell.data[0], g = cell.data[1], b = cell.data[2];
+      codigos.push(clasificarColor(r, g, b));
     }
   }
   return codigos;
@@ -126,38 +134,27 @@ function obtenerCodigo(x, y, ancho, alto) {
 
 function escanear() {
   ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-  const codigo = obtenerCodigo(0, 75, 320, 160);
+  const margen = 60;
+  const codigo = obtenerCodigoDesdeRegion(margen, margen, canvas.width - margen * 2, canvas.height - margen * 2);
   console.log("Código detectado:", codigo);
 
   let match = "---";
-  let mensajeError = "";
-
   for (const [planta, ref] of Object.entries(baseDatos)) {
-    const seccionInteracciones = codigo.slice(0, 16);
-    const seccionIdentificador = codigo.slice(16, 24);
-    const seccionToxicidad = codigo.slice(24, 32);
-
-    const refInteracciones = ref.slice(0, 16);
-    const refIdentificador = ref.slice(16, 24);
-    const refToxicidad = ref.slice(24, 32);
-
-    let matchInteracciones = seccionInteracciones.filter((c, i) => c === refInteracciones[i]).length;
-    let matchIdentificador = seccionIdentificador.filter((c, i) => c === refIdentificador[i]).length;
-    let matchToxicidad = seccionToxicidad.filter((c, i) => c === refToxicidad[i]).length;
-
-    if (matchIdentificador === 8 && matchInteracciones >= 14 && matchToxicidad >= 14) {
+    let coincidencias = 0;
+    let errores = 0;
+    for (let i = 0; i < 32; i++) {
+      if (codigo[i] === ref[i]) coincidencias++;
+      else if (ref[i] !== "otro" && codigo[i] !== "otro") errores++;
+    }
+    if (coincidencias >= 30 && errores <= 2) {
       match = planta;
       break;
-    } else {
-      mensajeError = `Error: Identificador ${matchIdentificador}/8, Interacciones ${matchInteracciones}/16, Toxicidad ${matchToxicidad}/16`;
     }
   }
 
-  if (match === "---") {
-    resultado.innerHTML = `<span style="color:darkred;"><b>No se reconoció ninguna planta</b><br>${mensajeError}</span>`;
-  } else {
-    resultado.innerHTML = `<strong>${match}</strong>`;
-  }
+  resultado.innerHTML = match === "---"
+    ? `<span style="color:red"><b>No se reconoció ninguna planta</b></span>`
+    : `<strong>${match}</strong>`;
 }
 
 function descargarPDF() {
