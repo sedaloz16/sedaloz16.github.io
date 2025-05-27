@@ -31,6 +31,9 @@
       font-weight: bold;
       color: #444;
     }
+    #imageInput {
+      margin-top: 10px;
+    }
   </style>
 </head>
 <body>
@@ -38,6 +41,10 @@
   <video id="video" autoplay muted playsinline></video>
   <canvas id="canvas" style="display:none;"></canvas>
   <div id="overlay"></div>
+
+  <input type="file" id="imageInput" accept="image/*">
+  <button onclick="escanear()">Escanear Imagen Cargada</button>
+
   <p id="planta">Resultado: ---</p>
 
   <script>
@@ -73,6 +80,7 @@
     const ctx = canvas.getContext("2d");
     const overlay = document.getElementById("overlay");
     const resultado = document.getElementById("planta");
+    const imageInput = document.getElementById("imageInput");
 
     navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } })
       .then(stream => { video.srcObject = stream; })
@@ -117,11 +125,10 @@
     }
 
     function escanear() {
-      canvas.width = video.videoWidth;
-      canvas.height = video.videoHeight;
-      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
       const margen = 60;
-      const codigo = obtenerCodigoDesdeRegion(margen, margen, canvas.width - margen * 2, canvas.height - margen * 2);
+      const w = canvas.width;
+      const h = canvas.height;
+      const codigo = obtenerCodigoDesdeRegion(margen, margen, w - margen * 2, h - margen * 2);
       console.log("Código detectado:", codigo);
 
       let match = "---";
@@ -143,9 +150,26 @@
         : `<strong>${match}</strong>`;
     }
 
+    imageInput.addEventListener("change", function (e) {
+      const file = e.target.files[0];
+      if (!file) return;
+      const img = new Image();
+      img.onload = function () {
+        canvas.width = img.width;
+        canvas.height = img.height;
+        ctx.drawImage(img, 0, 0);
+      };
+      img.src = URL.createObjectURL(file);
+    });
+
     video.addEventListener("loadeddata", () => {
       dibujarOverlay();
-      setInterval(escanear, 3000); // escanea cada 3 segundos
+      setInterval(() => {
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+        escanear();
+      }, 3000);
     });
   </script>
 </body>
