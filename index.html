@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <title>Escáner Robusto de Plantas</title>
+  <title>Escáner de Plantas Medicinales</title>
   <style>
     body {
       font-family: sans-serif;
@@ -32,12 +32,21 @@
       font-size: 1.3em;
       font-weight: bold;
     }
-    #imageInput {
+    #imageInput, #guardarPDF {
       margin-top: 15px;
     }
     .corner {
       stroke: #00c853;
       stroke-width: 3;
+    }
+    #mensaje-overlay {
+      position: absolute;
+      top: 500px;
+      left: 50%;
+      transform: translateX(-50%);
+      font-size: 1em;
+      color: #444;
+      font-weight: bold;
     }
   </style>
 </head>
@@ -46,9 +55,11 @@
   <video id="video" autoplay muted playsinline></video>
   <canvas id="canvas" style="display:none;"></canvas>
   <div id="overlay"></div>
+  <div id="mensaje-overlay">Alinea el código aquí</div>
 
   <input type="file" id="imageInput" accept="image/*">
   <button onclick="escanear()">Escanear Imagen Cargada</button>
+  <button id="guardarPDF" onclick="generarPDF()" style="display:none;">Guardar Ficha en PDF</button>
 
   <p id="planta">Resultado: ---</p>
 
@@ -85,6 +96,10 @@
     const ctx = canvas.getContext("2d");
     const overlay = document.getElementById("overlay");
     const resultado = document.getElementById("planta");
+    const guardarPDF = document.getElementById("guardarPDF");
+
+    let ultimaPlantaReconocida = null;
+    let streamActivo = true;
 
     navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } })
       .then(stream => {
@@ -93,7 +108,7 @@
       })
       .catch(err => {
         console.error("❌ Error al activar la cámara:", err);
-        alert("No se pudo activar la cámara. Verifica los permisos o recarga el navegador.");
+        alert("No se pudo activar la cámara.");
       });
 
     function clasificarColor(r, g, b) {
@@ -141,6 +156,7 @@
     }
 
     function escanear() {
+      if (!streamActivo) return;
       const margen = 60;
       const w = canvas.width;
       const h = canvas.height;
@@ -157,9 +173,29 @@
           break;
         }
       }
+
       resultado.innerHTML = match === "---"
         ? `<span style="color:red"><b>No se reconoció ninguna planta</b></span>`
         : `<strong>${match}</strong>`;
+
+      if (match !== "---") {
+        ultimaPlantaReconocida = match;
+        streamActivo = false;
+        video.srcObject.getTracks().forEach(track => track.stop());
+        guardarPDF.style.display = "inline-block";
+      }
+    }
+
+    function generarPDF() {
+      const win = window.open("", "_blank");
+      const fecha = new Date().toLocaleString();
+      win.document.write(`
+        <h1>Ficha de Planta Reconocida</h1>
+        <p><strong>Nombre:</strong> ${ultimaPlantaReconocida}</p>
+        <p><strong>Fecha:</strong> ${fecha}</p>
+        <p><strong>Resumen:</strong> Uso tradicional, interacciones y toxicidad dependerán de la base de datos médica asociada.</p>
+      `);
+      win.print();
     }
 
     document.getElementById("imageInput").addEventListener("change", e => {
