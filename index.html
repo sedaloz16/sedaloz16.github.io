@@ -5,173 +5,148 @@
   <title>Escáner de Plantas Medicinales</title>
   <style>
     body {
-      font-family: 'Poppins', sans-serif;
+      font-family: sans-serif;
       background: #f0f8f0;
-      padding: 20px;
       text-align: center;
+      margin: 0;
+      padding: 0;
     }
-    h2 {
-      color: #355e3b;
-    }
-    video {
-      border: 3px solid #b3cbb9;
-      border-radius: 8px;
-      margin-bottom: 10px;
+    video, canvas {
+      width: 640px;
+      height: 480px;
+      margin-top: 10px;
     }
     #overlay {
       position: absolute;
-      top: 75px;
+      top: 10px;
       left: 50%;
       transform: translateX(-50%);
-      width: 320px;
-      height: 160px;
-      border: 2px dashed #e69138;
-      border-radius: 6px;
-      z-index: 2;
+      width: 640px;
+      height: 480px;
+      pointer-events: none;
     }
-    #resultado {
+    #planta {
       margin-top: 20px;
-      background: white;
-      padding: 15px 20px;
-      border-radius: 10px;
-      display: inline-block;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.1);
-      font-size: 1.2em;
-    }
-    button, input[type=file] {
-      margin: 10px;
-      padding: 10px 16px;
-      border-radius: 8px;
-      border: none;
-      background: #80a37f;
-      color: white;
-      cursor: pointer;
-    }
-    button:hover {
-      background: #678c6c;
+      font-size: 1.4em;
+      font-weight: bold;
+      color: #444;
     }
   </style>
 </head>
 <body>
-  <h2>Escáner de Plantas Medicinales</h2>
-  <div style="position: relative; display: inline-block;">
-    <video id="video" width="320" height="240" autoplay></video>
-    <div id="overlay"></div>
-  </div>
-  <br>
-  <input type="file" id="imageUpload" accept="image/*"><br>
-  <canvas id="canvas" width="320" height="240" style="display:none;"></canvas>
-  <div>
-    <button onclick="escanear()">Escanear con cámara</button>
-    <button onclick="descargarPDF()">Descargar PDF</button>
-  </div>
-  <div id="resultado"><b id="planta">---</b></div>
+  <h1>Escáner de Plantas Medicinales</h1>
+  <video id="video" autoplay muted playsinline></video>
+  <canvas id="canvas" style="display:none;"></canvas>
+  <div id="overlay"></div>
+  <p id="planta">Resultado: ---</p>
 
-<script>
-const baseDatos = {
-  "Anís (Pimpinella anisum L.)": [
-    "negro","gris","gris","gris","gris","gris","gris","negro",
-    "gris","otro","amarillo","amarillo","negro","blanco","verde","gris",
-    "gris","otro","gris","gris","negro","blanco","verde","gris",
-    "negro","gris","gris","gris","gris","gris","gris","negro"
-  ],
-  "Coca (Erythroxylum coca Lam.)": [
-    "negro","gris","gris","gris","gris","gris","gris","negro",
-    "gris","otro","rojo","amarillo","negro","blanco","otro","gris",
-    "gris","otro","otro","gris","negro","blanco","verde","gris",
-    "negro","gris","gris","gris","gris","gris","gris","negro"
-  ],
-  "Diente de león (Taraxacum officinale F.H.Wigg.)": [
-    "negro","gris","gris","gris","gris","gris","gris","negro",
-    "gris","gris","amarillo","verde","blanco","negro","verde","gris",
-    "gris","gris","gris","verde","blanco","negro","gris","gris",
-    "blanco","gris","gris","gris","gris","gris","gris","blanco"
-  ],
-  "Wira Wira (Achyrocline venosa Rusby)": [
-    "negro","gris","gris","gris","gris","gris","gris","negro",
-    "gris","otro","gris","gris","negro","blanco","verde","gris",
-    "gris","otro","verde","gris","negro","blanco","verde","gris",
-    "negro","gris","gris","gris","gris","gris","gris","negro"
-  ]
-};
+  <script>
+    const baseDatos = {
+      "Anís (Pimpinella anisum L.)": [
+        "negro","gris","gris","gris","gris","gris","gris","negro",
+        "gris","otro","amarillo","amarillo","negro","blanco","verde","gris",
+        "gris","otro","gris","gris","negro","blanco","verde","gris",
+        "negro","gris","gris","gris","gris","gris","gris","negro"
+      ],
+      "Coca (Erythroxylum coca Lam.)": [
+        "negro","gris","gris","gris","gris","gris","gris","negro",
+        "gris","otro","rojo","amarillo","negro","blanco","otro","gris",
+        "gris","otro","otro","gris","negro","blanco","verde","gris",
+        "negro","gris","gris","gris","gris","gris","gris","negro"
+      ],
+      "Diente de león (Taraxacum officinale F.H.Wigg.)": [
+        "negro","gris","gris","gris","gris","gris","gris","negro",
+        "gris","gris","amarillo","verde","blanco","negro","verde","gris",
+        "gris","gris","gris","verde","blanco","negro","gris","gris",
+        "blanco","gris","gris","gris","gris","gris","gris","blanco"
+      ],
+      "Wira Wira (Achyrocline venosa Rusby)": [
+        "negro","gris","gris","gris","gris","gris","gris","negro",
+        "gris","otro","gris","gris","negro","blanco","verde","gris",
+        "gris","otro","verde","gris","negro","blanco","verde","gris",
+        "negro","gris","gris","gris","gris","gris","gris","negro"
+      ]
+    };
 
-const video = document.getElementById("video");
-const canvas = document.getElementById("canvas");
-const ctx = canvas.getContext("2d");
-const overlay = document.getElementById("overlay");
-const resultado = document.getElementById("planta");
+    const video = document.getElementById("video");
+    const canvas = document.getElementById("canvas");
+    const ctx = canvas.getContext("2d");
+    const overlay = document.getElementById("overlay");
+    const resultado = document.getElementById("planta");
 
-navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } })
-  .then(stream => { video.srcObject = stream; })
-  .catch(err => alert("No se pudo acceder a la cámara."));
+    navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } })
+      .then(stream => { video.srcObject = stream; })
+      .catch(err => alert("No se pudo acceder a la cámara."));
 
-function clasificarColor(r, g, b) {
-  if (r > 240 && g > 240 && b > 240) return "blanco";
-  if (r < 30 && g < 30 && b < 30) return "negro";
-  if (r > 200 && g > 200 && b < 100) return "amarillo";
-  if (r > 200 && g < 80 && b < 80) return "rojo";
-  if (g > 150 && r < 200 && b < 100) return "verde";
-  if (Math.abs(r - g) < 25 && Math.abs(g - b) < 25 && r < 200) return "gris";
-  return "otro";
-}
-
-function dibujarOverlay() {
-  const cellW = video.width / 8;
-  const cellH = video.height / 4;
-  const svg = `<svg width="${video.width}" height="${video.height}" xmlns="http://www.w3.org/2000/svg">
-    ${[...Array(9).keys()].map(i => `<line x1="${i * cellW}" y1="0" x2="${i * cellW}" y2="${video.height}" stroke="lime" stroke-width="1"/>`).join('')}
-    ${[...Array(5).keys()].map(i => `<line x1="0" y1="${i * cellH}" x2="${video.width}" y2="${i * cellH}" stroke="lime" stroke-width="1"/>`).join('')}
-  </svg>`;
-  overlay.innerHTML = svg;
-}
-
-function obtenerCodigoDesdeRegion(x, y, w, h) {
-  const codigos = [];
-  const filas = 4;
-  const columnas = 8;
-  const anchoBloque = w / columnas;
-  const altoBloque = h / filas;
-  for (let f = 0; f < filas; f++) {
-    for (let c = 0; c < columnas; c++) {
-      const px = x + c * anchoBloque + anchoBloque / 2;
-      const py = y + f * altoBloque + altoBloque / 2;
-      const cell = ctx.getImageData(px, py, 1, 1);
-      const r = cell.data[0], g = cell.data[1], b = cell.data[2];
-      codigos.push(clasificarColor(r, g, b));
+    function clasificarColor(r, g, b) {
+      if (r > 240 && g > 240 && b > 240) return "blanco";
+      if (r < 30 && g < 30 && b < 30) return "negro";
+      if (r > 200 && g > 200 && b < 100) return "amarillo";
+      if (r > 200 && g < 80 && b < 80) return "rojo";
+      if (g > 150 && r < 200 && b < 100) return "verde";
+      if (Math.abs(r - g) < 25 && Math.abs(g - b) < 25 && r < 200) return "gris";
+      return "otro";
     }
-  }
-  return codigos;
-}
 
-function escanear() {
-  ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-  const margen = 60;
-  const codigo = obtenerCodigoDesdeRegion(margen, margen, canvas.width - margen * 2, canvas.height - margen * 2);
-  console.log("Código detectado:", codigo);
-
-  let match = "---";
-  for (const [planta, ref] of Object.entries(baseDatos)) {
-    let coincidencias = 0;
-    let errores = 0;
-    for (let i = 0; i < 32; i++) {
-      if (codigo[i] === ref[i]) coincidencias++;
-      else if (ref[i] !== "otro" && codigo[i] !== "otro") errores++;
+    function dibujarOverlay() {
+      const cellW = video.width / 8;
+      const cellH = video.height / 4;
+      const svg = `<svg width="640" height="480" xmlns="http://www.w3.org/2000/svg">
+        ${[...Array(9).keys()].map(i => `<line x1="${i * cellW}" y1="0" x2="${i * cellW}" y2="480" stroke="lime" stroke-width="1"/>`).join('')}
+        ${[...Array(5).keys()].map(i => `<line x1="0" y1="${i * cellH}" x2="640" y2="${i * cellH}" stroke="lime" stroke-width="1"/>`).join('')}
+      </svg>`;
+      overlay.innerHTML = svg;
     }
-    if (coincidencias >= 30 && errores <= 2) {
-      match = planta;
-      break;
+
+    function obtenerCodigoDesdeRegion(x, y, w, h) {
+      const codigos = [];
+      const filas = 4;
+      const columnas = 8;
+      const anchoBloque = w / columnas;
+      const altoBloque = h / filas;
+      for (let f = 0; f < filas; f++) {
+        for (let c = 0; c < columnas; c++) {
+          const px = x + c * anchoBloque + anchoBloque / 2;
+          const py = y + f * altoBloque + altoBloque / 2;
+          const cell = ctx.getImageData(px, py, 1, 1);
+          const r = cell.data[0], g = cell.data[1], b = cell.data[2];
+          codigos.push(clasificarColor(r, g, b));
+        }
+      }
+      return codigos;
     }
-  }
 
-  resultado.innerHTML = match === "---"
-    ? `<span style="color:red"><b>No se reconoció ninguna planta</b></span>`
-    : `<strong>${match}</strong>`;
-}
+    function escanear() {
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+      const margen = 60;
+      const codigo = obtenerCodigoDesdeRegion(margen, margen, canvas.width - margen * 2, canvas.height - margen * 2);
+      console.log("Código detectado:", codigo);
 
-video.addEventListener("loadeddata", () => {
-  dibujarOverlay();
-  setInterval(escanear, 3000); // Escaneo cada 3 segundos
-});
-</script>
+      let match = "---";
+      for (const [planta, ref] of Object.entries(baseDatos)) {
+        let coincidencias = 0;
+        let errores = 0;
+        for (let i = 0; i < 32; i++) {
+          if (codigo[i] === ref[i]) coincidencias++;
+          else if (ref[i] !== "otro" && codigo[i] !== "otro") errores++;
+        }
+        if (coincidencias >= 30 && errores <= 2) {
+          match = planta;
+          break;
+        }
+      }
+
+      resultado.innerHTML = match === "---"
+        ? `<span style="color:red"><b>No se reconoció ninguna planta</b></span>`
+        : `<strong>${match}</strong>`;
+    }
+
+    video.addEventListener("loadeddata", () => {
+      dibujarOverlay();
+      setInterval(escanear, 3000); // escanea cada 3 segundos
+    });
+  </script>
 </body>
 </html>
