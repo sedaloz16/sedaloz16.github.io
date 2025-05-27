@@ -16,6 +16,7 @@
       height: 480px;
       margin-top: 10px;
       border: 2px solid #444;
+      display: block;
     }
     #overlay {
       position: absolute;
@@ -84,6 +85,16 @@
     const ctx = canvas.getContext("2d");
     const overlay = document.getElementById("overlay");
     const resultado = document.getElementById("planta");
+
+    navigator.mediaDevices.getUserMedia({ video: { facingMode: "environment" } })
+      .then(stream => {
+        video.srcObject = stream;
+        console.log("✅ Cámara activada");
+      })
+      .catch(err => {
+        console.error("❌ Error al activar la cámara:", err);
+        alert("No se pudo activar la cámara. Verifica los permisos o recarga el navegador.");
+      });
 
     function clasificarColor(r, g, b) {
       if (r > 240 && g > 240 && b > 240) return "blanco";
